@@ -60,13 +60,13 @@ server.
 
 Each microservice uses its **own PostgreSQL database**:
 
-  Service     Database Name
-  ----------- ---------------
-  Auth        auth_db
-  Product     product_db
-  Inventory   inventory_db
-  Order       order_db
-  Payment     payment_db
+  | Service   | Database Name |
+| --------- | ------------- |
+| Auth      | auth_db       |
+| Product   | product_db    |
+| Inventory | inventory_db  |
+| Order     | order_db      |
+| Payment   | payment_db    |
 
 ### Flyway migrations
 
