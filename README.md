@@ -1,154 +1,267 @@
-# 🛒 E-Commerce Microservices (Spring Boot + PostgreSQL)
+# 📦 E-Commerce Microservices (Spring Boot + PostgreSQL + Kafka + Eureka)
 
-A fully backend-only **E-Commerce Microservice System** built using
-**Spring Boot**, **Spring Cloud**, **PostgreSQL**, and **Kafka**
-(optional but recommended).\
-This system demonstrates intermediate-level microservice architecture,
-inter-service communication, distributed design, and clean REST APIs ---
-**without any frontend**.
+**Backend-only, No Frontend**
 
-## 📌 Architecture Overview
+This project is an **intermediate-level microservices system**
+demonstrating real-world backend architecture using **Spring Boot**,
+**PostgreSQL**, **Kafka**, **Spring Cloud**, and **JWT authentication**.
 
-This project consists of the following microservices:
+Each microservice is fully isolated with its own database, communicates
+through REST + Kafka events, and registers with a Eureka discovery
+server.
+
+------------------------------------------------------------------------
+
+## 🧱 Architecture Overview
+
+                        ┌───────────────────┐
+                        │   API Gateway     │
+                        └─────────┬─────────┘
+                                  │
+                         Service Discovery
+                        ┌─────────▼─────────┐
+                        │   Eureka Server   │
+                        └─────────┬─────────┘
+                                  │
+                 ┌────────────────┼──────────────────┐
+                 │                │                  │
+       ┌─────────▼───────┐┌──────▼─────────┐┌───────▼────────┐
+       │ Auth Service    ││ Product Service ││ Inventory       │
+       │ (JWT, Users)    ││ (Catalog CRUD)  ││ Service         │
+       └─────────────────┘└─────────────────┘│ (Stock Mgmt)   │
+                                             └─────────┬──────┘
+                                                       │ Kafka Events
+       ┌─────────────────────┐                         │
+       │ Order Service       │<────────────────────────┘
+       │ (Saga Workflow)     │──────────────┐
+       └─────────────────────┘              │
+                                            │ Kafka
+                         ┌──────────────────▼───────────┐
+                         │     Payment Service           │
+                         └──────────────────────────────┘
+
+------------------------------------------------------------------------
+
+## 📚 Services Included
+
+  Service                 Port   Description
+  ----------------------- ------ --------------------------------
+  **Eureka Server**       8761   Service registry
+  **API Gateway**         8080   Routing, filters, JWT relay
+  **Auth Service**        8101   Login, registration, JWT
+  **Product Service**     8102   Product catalog
+  **Inventory Service**   8103   Stock management, reservations
+  **Order Service**       8104   Orders + Saga coordination
+  **Payment Service**     8105   Mock payment processor
+
+------------------------------------------------------------------------
+
+## 🛢 Databases
+
+Each microservice uses its **own PostgreSQL database**:
+
+  Service     Database Name
+  ----------- ---------------
+  Auth        auth_db
+  Product     product_db
+  Inventory   inventory_db
+  Order       order_db
+  Payment     payment_db
+
+### Flyway migrations
+
+Located in:
+
+    src/main/resources/db/migration/
+
+Example migration (Product service):
+
+``` sql
+CREATE TABLE products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sku VARCHAR(64) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    price_cents BIGINT NOT NULL,
+    currency VARCHAR(8) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+------------------------------------------------------------------------
+
+# 📨 Kafka Topics (Event-Driven Communication)
 
   -----------------------------------------------------------------------
-  Service                     Description
-  --------------------------- -------------------------------------------
-  **API-Gateway**             Entry point for all clients, handles
-                              routing & authentication.
+  Topic                            Produced by   Consumed by
+  -------------------------------- ------------- ------------------------
+  `orders.created`                 Order Service Inventory, Payment
 
-  **Discovery Server          Service registry so microservices can
-  (Eureka)**                  discover each other.
+  `inventory.reserved`             Inventory     Payment, Order
 
-  **Product Service**         Manages products, categories, inventory
-                              info. Uses PostgreSQL.
+  `inventory.reservation_failed`   Inventory     Order
 
-  **Inventory Service**       Checks and updates stock. Uses PostgreSQL.
+  `payment.completed`              Payment       Order
 
-  **Order Service**           Creates orders, coordinates with Product &
-                              Inventory services. Uses PostgreSQL.
+  `orders.confirmed`               Order         Notification (optional)
 
-  **Payment Service**         Mock payment processing.
-
-  **Notification Service**    Sends order confirmation notifications
-                              (async / Kafka).
+  `orders.cancelled`               Order         Notification
   -----------------------------------------------------------------------
 
-Communication Types: - **Sync:** REST calls between Product → Inventory
-→ Order\
-- **Async:** Order → Notification using Kafka events
+Event example:
 
-## 🧰 Tech Stack
+``` json
+{
+  "orderId": "ae34b5c0-19b2-4fad-b0e6-3c9c28f71c5b",
+  "userId": "9f134",
+  "totalCents": 12999,
+  "items": [
+    { "sku": "SKU-123", "qty": 1 }
+  ],
+  "createdAt": "2025-11-21T10:00:00Z"
+}
+```
 
-### Backend
+------------------------------------------------------------------------
+
+# ⚙️ How to Run the Project (NO DOCKER)
+
+## 1. **Prerequisites**
+
+Install:
 
 -   Java 17+
--   Spring Boot 3.x
--   Spring Cloud (Eureka, Gateway, OpenFeign)
--   Spring Security (JWT)
--   Spring Data JPA
--   MapStruct
--   Lombok
+-   Apache Kafka
+-   Zookeeper
+-   PostgreSQL
+-   Maven or Gradle
 
-### Database
+------------------------------------------------------------------------
 
--   PostgreSQL (one DB per service)
-
-### Messaging
-
--   Kafka (optional, for Notification events)
-
-## 📁 Project Structure
-
-    ecommerce-microservices/
-    ├── api-gateway/
-    ├── discovery-server/
-    ├── product-service/
-    ├── inventory-service/
-    ├── order-service/
-    ├── payment-service/
-    └── notification-service/
-
-## 🗄️ Database Setup (PostgreSQL)
-
-Create databases:
-
-    CREATE DATABASE product_db;
-    CREATE DATABASE inventory_db;
-    CREATE DATABASE order_db;
-    CREATE DATABASE payment_db;
-    CREATE DATABASE notification_db;
-
-Each service updates its `application.yml`:
-
-    spring:
-      datasource:
-        url: jdbc:postgresql://localhost:5432/product_db
-        username: postgres
-        password: yourpassword
-
-## 🚀 How to Run (Without Docker)
-
-1.  Start Discovery Server\
-2.  Start API Gateway\
-3.  Start Product, Inventory, Order, Payment services\
-4.  Start Notification Service (if using Kafka)
-
-## ✨ Features
-
-### Product Service
-
--   CRUD products\
--   Categories\
--   Stock check
-
-### Inventory Service
-
--   Check available stock\
--   Reduce stock atomically
-
-### Order Service
-
--   Create orders\
--   Validate stock\
--   Kafka event publishing
-
-### Payment Service
-
--   Mock payments
-
-### Notification Service
-
--   Kafka listener
-
-## 🛌 Sample API Endpoints
-
-### Product
-
-    GET /api/products
-    GET /api/products/{id}
-    POST /api/products
-
-### Inventory
-
-    GET /api/inventory/{productId}
-    POST /api/inventory/reduce
-
-### Order
-
-    POST /api/orders
-    GET /api/orders/{id}
-
-## 🧪 Testing
+## 2. **Start PostgreSQL and Create Databases**
 
 Run:
 
+``` sql
+CREATE DATABASE auth_db;
+CREATE DATABASE product_db;
+CREATE DATABASE inventory_db;
+CREATE DATABASE order_db;
+CREATE DATABASE payment_db;
+```
+
+------------------------------------------------------------------------
+
+## 3. **Start Kafka and Zookeeper**
+
+Example:
+
+    zookeeper-server-start.sh zookeeper.properties
+    kafka-server-start.sh server.properties
+
+------------------------------------------------------------------------
+
+## 4. **Start Services in Order**
+
+### 1️⃣ Start Eureka Server
+
+    cd eureka-server
+    ./mvnw spring-boot:run
+
+### 2️⃣ Start API Gateway
+
+    cd gateway
+    ./mvnw spring-boot:run
+
+### 3️⃣ Start each microservice
+
+    cd auth-service && ./mvnw spring-boot:run
+    cd product-service && ./mvnw spring-boot:run
+    cd inventory-service && ./mvnw spring-boot:run
+    cd order-service && ./mvnw spring-boot:run
+    cd payment-service && ./mvnw spring-boot:run
+
+------------------------------------------------------------------------
+
+# 🔑 Authentication (JWT)
+
+## Register
+
+    POST /auth/register
+    {
+      "email": "test@example.com",
+      "password": "123456"
+    }
+
+## Login
+
+    POST /auth/login
+
+Response:
+
+``` json
+{
+  "accessToken": "xxx",
+  "refreshToken": "yyy"
+}
+```
+
+------------------------------------------------------------------------
+
+# 🛒 Order Placement Saga Flow
+
+### Step 1: Client creates order
+
+    POST /api/orders
+
+### Step 2: Order Service
+
+-   Saves order as **PENDING**
+-   Emits **orders.created**
+
+### Step 3: Inventory Service
+
+-   Reserves stock
+-   Emits `inventory.reserved` OR `inventory.reservation_failed`
+
+### Step 4: Payment Service
+
+-   Processes mock payment
+-   Emits `payment.completed`
+
+### Step 5: Order Service
+
+-   Confirms or cancels order accordingly
+
+------------------------------------------------------------------------
+
+# 📁 Project Structure (Monorepo)
+
+    ecommerce/
+     ├── eureka-server/
+     ├── gateway/
+     ├── auth-service/
+     ├── product-service/
+     ├── inventory-service/
+     ├── order-service/
+     ├── payment-service/
+     └── shared/
+          ├── dto/
+          ├── events/
+          ├── kafka/
+          └── security/
+
+------------------------------------------------------------------------
+
+# 🧪 Testing
+
     ./mvnw test
 
-## 🛠️ Build
+------------------------------------------------------------------------
 
-    ./mvnw clean package
+# 🚀 Future Enhancements
 
-## 📜 License
-
-MIT
+-   Notification service\
+-   Outbox pattern\
+-   Redis caching\
+-   Elasticsearch search\
+-   Zipkin/Jaeger tracing
