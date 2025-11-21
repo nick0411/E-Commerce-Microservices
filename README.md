@@ -91,20 +91,14 @@ CREATE TABLE products (
 
 # 📨 Kafka Topics (Event-Driven Communication)
 
-  -----------------------------------------------------------------------
-  Topic                            Produced by   Consumed by
-  -------------------------------- ------------- ------------------------
-  `orders.created`                 Order Service Inventory, Payment
-
-  `inventory.reserved`             Inventory     Payment, Order
-
-  `inventory.reservation_failed`   Inventory     Order
-
-  `payment.completed`              Payment       Order
-
-  `orders.confirmed`               Order         Notification (optional)
-
-  `orders.cancelled`               Order         Notification
+  | Topic                          | Produced by   | Consumed by             |
+| ------------------------------ | ------------- | ----------------------- |
+| `orders.created`               | Order Service | Inventory, Payment      |
+| `inventory.reserved`           | Inventory     | Payment, Order          |
+| `inventory.reservation_failed` | Inventory     | Order                   |
+| `payment.completed`            | Payment       | Order                   |
+| `orders.confirmed`             | Order         | Notification (optional) |
+| `orders.cancelled`             | Order         | Notification            |
   -----------------------------------------------------------------------
 
 Event example:
