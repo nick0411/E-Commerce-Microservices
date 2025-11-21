@@ -44,15 +44,15 @@ server.
 
 ## 📚 Services Included
 
-  Service                 Port   Description
-  ----------------------- ------ --------------------------------
-  **Eureka Server**       8761   Service registry
-  **API Gateway**         8080   Routing, filters, JWT relay
-  **Auth Service**        8101   Login, registration, JWT
-  **Product Service**     8102   Product catalog
-  **Inventory Service**   8103   Stock management, reservations
-  **Order Service**       8104   Orders + Saga coordination
-  **Payment Service**     8105   Mock payment processor
+ | Service               | Port | Description                    |
+| --------------------- | ---- | ------------------------------ |
+| **Eureka Server**     | 8761 | Service registry               |
+| **API Gateway**       | 8080 | Routing, filters, JWT relay    |
+| **Auth Service**      | 8101 | Login, registration, JWT       |
+| **Product Service**   | 8102 | Product catalog                |
+| **Inventory Service** | 8103 | Stock management, reservations |
+| **Order Service**     | 8104 | Orders + Saga coordination     |
+| **Payment Service**   | 8105 | Mock payment processor         |
 
 ------------------------------------------------------------------------
 
